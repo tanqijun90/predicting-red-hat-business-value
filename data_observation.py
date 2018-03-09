@@ -155,16 +155,21 @@ del m_total['peo_last_act']
 del m_total['date_x']
 del m_total['date_y']
 
-# #############################################
-# print('digression to group_act_size')
-# #############################################
-# gpb=m_total.groupby('group_1')
-# t_group_act_size=gpb['activity_id'].count()
-# t_group_act_size.name='group_act_size'
-# m_total=m_total.merge(pd.DataFrame(t_group_act_size),how='left',left_on='group_1',right_index=True)
-# #############################################
-# print('batch feature engineer')
-# #############################################
+
+
+#############################################
+print('digression to group_act_size')
+#############################################
+gpb=m_total.groupby('group_1')
+t_group_act_size=gpb['activity_id'].count()
+t_group_act_size.name='group_act_size'
+m_total=m_total.merge(pd.DataFrame(t_group_act_size),how='left',left_on='group_1',right_index=True)
+#############################################
+print('batch feature engineer')
+#############################################
+m_train=m_total.iloc[:len(act_train)]
+m_total=success_rate(m_total,['group_1'],m_train)
+m_total=success_rate(m_total,['act_date_int','group_1'],m_train)
 
 # available_features_prod=['char_1_y', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_38', 'char_10_x']
 
@@ -187,6 +192,8 @@ del m_total['date_y']
 # m_train=m_total.iloc[:len(act_train)]
 # m_small=m_train[m_train['group_act_size']<=small_group_act_size]
 # m_total=success_rate(m_total,['char_5_y','char_7_y','char_32'],m_small)
+
+del m_train
 
 #############################################
 print('group date interpolation')
