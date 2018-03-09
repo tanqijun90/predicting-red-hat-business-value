@@ -5,7 +5,8 @@ print('parameters')
 ######################################
 fillna_num=60000#fill number cannot be negative, cannot be too large
 kaggle_output=False
-confidence_wo=0.1 
+confidence_wo=0.5
+alpha=5
 sample_frac=1
 train_gp_frac=0.2
 train_wo_frac=0.1
@@ -20,6 +21,9 @@ small_group_act_size=1000000
 ######################################
 print('functions')
 ######################################
+def prediction_mod_funct(prediction,alpha,confidence_wo):
+    return confidence_wo*(np.exp(alpha*prediction)/np.exp(alpha)-0.5)+0.5
+
 def interpolate_funct(x,x_0,x_1,y_0,y_1,center=0.5,alpha=0.5):#alpha does not change gp_AUC
     l=2*(x-x_0)/(x_1-x_0)-1 #l(x_1)=1,l(x_0)=-1
     phi=np.tanh(alpha*l)/np.tanh(alpha)#phi(1)=1,phi(-1)=-1
@@ -386,7 +390,7 @@ from sklearn.metrics import roc_auc_score
 if not kaggle_output:
     print(roc_auc_score(local_outcome_gp,bst_gp.predict(dtest_gp)))
     print(roc_auc_score(local_outcome_wo,bst_wo.predict(dtest_wo)))
-    print(roc_auc_score(np.concatenate((local_outcome_gp,local_outcome_wo)),np.concatenate((bst_gp.predict(dtest_gp),(bst_wo.predict(dtest_wo)-0.5)*confidence_wo+0.5))))
+    print(roc_auc_score(np.concatenate((local_outcome_gp,local_outcome_wo)),np.concatenate((bst_gp.predict(dtest_gp),prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)))))
 else:
     pred_gp=bst_gp.predict(dtest_gp)
     pred_wo=(bst_wo.predict(dtest_wo)-0.5)*confidence_wo+0.5
