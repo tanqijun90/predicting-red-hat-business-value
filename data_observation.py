@@ -14,7 +14,10 @@ def interpolate_funct(x,x_0,x_1,y_0,y_1,center=0.5,alpha=0.5):#alpha does not ch
 
 def interpolate_funct_boundary(x,x_0,y_0,boundary,decay,alpha=0.00001,alpha_limit=1):
 #    boundary_limit=(y_0+decay*alpha_limit*boundary)/(1+decay*alpha_limit*boundary)
-    boundary_limit=0
+    if y_0==1:
+        boundary_limit=0.9
+    else:
+        boundary_limit=0.1
     return (y_0-boundary_limit)*np.exp(-alpha*decay*abs(x-x_0))+boundary_limit
 
 def interpolate_rt(df_sorted_by_date,col_of_date_int,col_of_average,col_of_boundary,col_of_decay,date_int):
@@ -154,9 +157,6 @@ m_total['peo_date_int']=(m_total['date_y']-pd.datetime(2020,1,7)).dt.days
 del m_total['peo_last_act']
 del m_total['date_x']
 del m_total['date_y']
-
-
-
 #############################################
 print('digression to group_act_size')
 #############################################
