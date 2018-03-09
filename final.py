@@ -5,7 +5,8 @@ print('parameters')
 ######################################
 fillna_num=60000#fill number cannot be negative, cannot be too large
 kaggle_output=False
-confidence_wo=0.7
+confidence_wo=0.2
+alpha=1
 sample_frac=1
 train_gp_frac=0.2
 train_wo_frac=0.1
@@ -13,7 +14,7 @@ early_stopping_rounds=10
 eta_gp=0.1
 eta_wo=0.02
 num_round_gp =60
-num_round_wo =700
+num_round_wo =500
 tree_build_subsample=1
 col_sample_tree=1
 small_group_act_size=1000000
@@ -269,7 +270,7 @@ categorical_col=categorical_col+['act_weekday','act_week_num', 'char_6_y_prod_ch
 
 use_col_gp=use_col_gp+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','act_week_num', 'is_weekend','act_date_int', 'peo_date_int', 'group_act_size','char_6_y_prod_char_2_y','char_2_y_char_6_y_char_7_y_char_9_y_rt', 'group_1_rt','act_date_int_group_1_rt', 'act_date_int_group_1_rt_boundary','group_1_rt_s', 'group_1_rt_us', 'act_date_int_group_1_rt_boundary_s','act_date_int_group_1_rt_boundary_us','char_2_y_char_6_y_char_7_y_char_9_y_rt_s','char_2_y_char_6_y_char_7_y_char_9_y_rt_us']
 
-#use_col_wo=use_col_wo+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend', 'act_date_int', 'peo_date_int']# 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y', 'char_1_y_prod_char_8_y']#'act_week_num',
+use_col_wo=use_col_wo+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend', 'act_date_int', 'peo_date_int']# 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y', 'char_1_y_prod_char_8_y']#'act_week_num',
 ######################################
 print('df_train_gp water down')
 ######################################
