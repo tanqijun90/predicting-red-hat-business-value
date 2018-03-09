@@ -114,8 +114,8 @@ def hist_bin(pds,bin_size):
 ######################################
 print('read in data')
 ######################################
-act_train=pd.read_csv('act_train.csv',parse_dates=['date'])
-peo_data=pd.read_csv('people.csv',parse_dates=['date'])
+act_train=pd.read_csv('../act_train.csv',parse_dates=['date'])
+peo_data=pd.read_csv('../people.csv',parse_dates=['date'])
 ######################################
 print('train test split')
 ######################################
@@ -138,36 +138,37 @@ gp_intersect=np.intersect1d(m_total['group_1'].iloc[:len(act_train)].values,m_to
 #############################################
 print('date-related feature engineering')
 #############################################
-# peo=m_total.groupby('people_id')
-# peo_last_act=peo['date_x'].max()
-# peo_last_act.name='peo_last_act'
-# m_total=m_total.merge(pd.DataFrame(peo_last_act),how='left',left_on=['people_id'],right_index=True)
-# m_total['is_last_act']=(m_total['date_x']==m_total['peo_last_act'])
-# m_total['act_year']=m_total['date_x'].dt.year
-# m_total['act_month']=m_total['date_x'].dt.month
-# m_total['act_day']=m_total['date_x'].dt.day
-# m_total['act_weekday']=m_total['date_x'].dt.weekday
-# m_total['act_week_num']=np.floor(((m_total['date_x']-pd.datetime(2020,1,7)).dt.days)/7)
-# m_total['act_week_num']=m_total['act_week_num'].astype('int32')
-# m_total['act_date_int']=(m_total['date_x']-pd.datetime(2020,1,7)).dt.days
-# m_total['peo_date_int']=(m_total['date_y']-pd.datetime(2020,1,7)).dt.days
-# del m_total['peo_last_act']
-# del m_total['date_x']
-# del m_total['date_y']
-#############################################
-print('digression to group_act_size')
-#############################################
-gpb=m_total.groupby('group_1')
-t_group_act_size=gpb['activity_id'].count()
-t_group_act_size.name='group_act_size'
-m_total=m_total.merge(pd.DataFrame(t_group_act_size),how='left',left_on='group_1',right_index=True)
-#############################################
-print('batch feature engineer')
-#############################################
+peo=m_total.groupby('people_id')
+peo_last_act=peo['date_x'].max()
+peo_last_act.name='peo_last_act'
+m_total=m_total.merge(pd.DataFrame(peo_last_act),how='left',left_on=['people_id'],right_index=True)
+m_total['is_last_act']=(m_total['date_x']==m_total['peo_last_act'])
+m_total['act_year']=m_total['date_x'].dt.year
+m_total['act_month']=m_total['date_x'].dt.month
+m_total['act_day']=m_total['date_x'].dt.day
+m_total['act_weekday']=m_total['date_x'].dt.weekday
+m_total['act_week_num']=np.floor(((m_total['date_x']-pd.datetime(2020,1,7)).dt.days)/7)
+m_total['act_week_num']=m_total['act_week_num'].astype('int32')
+m_total['act_date_int']=(m_total['date_x']-pd.datetime(2020,1,7)).dt.days
+m_total['peo_date_int']=(m_total['date_y']-pd.datetime(2020,1,7)).dt.days
+del m_total['peo_last_act']
+del m_total['date_x']
+del m_total['date_y']
 
-available_features_prod=['char_1_y', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_38', 'char_10_x']
+# #############################################
+# print('digression to group_act_size')
+# #############################################
+# gpb=m_total.groupby('group_1')
+# t_group_act_size=gpb['activity_id'].count()
+# t_group_act_size.name='group_act_size'
+# m_total=m_total.merge(pd.DataFrame(t_group_act_size),how='left',left_on='group_1',right_index=True)
+# #############################################
+# print('batch feature engineer')
+# #############################################
 
-available_features=  ['char_1_y', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_10_y', 'char_11', 'char_12', 'char_13', 'char_14','char_15', 'char_16', 'char_17', 'char_18', 'char_19', 'char_20','char_21', 'char_22', 'char_23', 'char_24', 'char_25', 'char_26','char_27', 'char_28', 'char_29', 'char_30', 'char_31', 'char_32','char_33', 'char_34', 'char_35', 'char_36', 'char_37', 'char_38','char_1_x', 'char_10_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x']#'is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','act_week_num','group_1'
+# available_features_prod=['char_1_y', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_38', 'char_10_x']
+
+# available_features=  ['char_1_y', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_10_y', 'char_11', 'char_12', 'char_13', 'char_14','char_15', 'char_16', 'char_17', 'char_18', 'char_19', 'char_20','char_21', 'char_22', 'char_23', 'char_24', 'char_25', 'char_26','char_27', 'char_28', 'char_29', 'char_30', 'char_31', 'char_32','char_33', 'char_34', 'char_35', 'char_36', 'char_37', 'char_38','char_1_x', 'char_10_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x']#'is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','act_week_num','group_1'
 
 # m_train=m_total.iloc[:len(act_train)]
 # m_small=m_train[m_train['group_act_size']<=small_group_act_size]
@@ -190,19 +191,19 @@ available_features=  ['char_1_y', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y',
 #############################################
 print('group date interpolation')
 #############################################
-# from functools import partial
-# m_train=m_total.iloc[:len(act_train)]
-# m_test=m_total.iloc[len(act_train):]
-# m_test_gp=m_test[m_test['group_1'].isin(gp_intersect)]
-# m_test_gp=m_test_gp[['group_1','act_date_int']]
-# m_test_gp=interpolate_rt_df(m_test_gp,m_train,'group_1','act_date_int','act_date_int_group_1_rt','group_1_rt','group_act_size')
-# del m_test['act_date_int_group_1_rt']
-# m_test=m_test.merge(m_test_gp,how='left',on=['group_1','act_date_int'])
-# m_test['act_date_int_group_1_rt'].fillna(fillna_num,inplace=True)
-# del m_total['act_date_int_group_1_rt']
-# m_total['act_date_int_group_1_rt']=pd.concat([m_train['act_date_int_group_1_rt'],m_test['act_date_int_group_1_rt']]).reset_index(drop=True)
-# del m_test
-# del m_test_gp
+from functools import partial
+m_train=m_total.iloc[:len(act_train)]
+m_test=m_total.iloc[len(act_train):]
+m_test_gp=m_test[m_test['group_1'].isin(gp_intersect)]
+m_test_gp=m_test_gp[['group_1','act_date_int']]
+m_test_gp=interpolate_rt_df(m_test_gp,m_train,'group_1','act_date_int','act_date_int_group_1_rt','group_1_rt','group_act_size')
+del m_test['act_date_int_group_1_rt']
+m_test=m_test.merge(m_test_gp,how='left',on=['group_1','act_date_int'])
+m_test['act_date_int_group_1_rt'].fillna(fillna_num,inplace=True)
+del m_total['act_date_int_group_1_rt']
+m_total['act_date_int_group_1_rt']=pd.concat([m_train['act_date_int_group_1_rt'],m_test['act_date_int_group_1_rt']]).reset_index(drop=True)
+del m_test
+del m_test_gp
 ######################################
 print('final data treatment')
 ######################################
@@ -224,15 +225,15 @@ print('output')
 ######################################
 from sklearn.metrics import roc_auc_score
 
-#for col in df_test_gp.columns:
-#    if df_test_gp[col].dtype=='float64':
-#        df_test_gp=secondary_feature(df_test_gp,col,'fill05')
-#        print(col,' AUC: ',roc_auc_score(local_outcome_gp,df_test_gp[col]))
+for col in df_test_gp.columns:
+    if df_test_gp[col].dtype=='float64':
+        df_test_gp=secondary_feature(df_test_gp,col,'fill05')
+        print(col,' AUC: ',roc_auc_score(local_outcome_gp,df_test_gp[col]))
 
-for col in df_test_wo.columns:
-    if df_test_wo[col].dtype=='float64':
-        df_test_gp=secondary_feature(df_test_wo,col,'fill05')
-        print(col,' AUC: ',roc_auc_score(local_outcome_wo,df_test_wo[col]))
+# for col in df_test_wo.columns:
+#     if df_test_wo[col].dtype=='float64':
+#         df_test_gp=secondary_feature(df_test_wo,col,'fill05')
+#         print(col,' AUC: ',roc_auc_score(local_outcome_wo,df_test_wo[col]))
 ###################################
 
 #        print(col,' AUC: ',roc_auc_score(local_outcome_gp,df_test_gp[col]))
