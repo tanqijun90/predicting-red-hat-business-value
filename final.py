@@ -5,8 +5,7 @@ print('parameters')
 ######################################
 fillna_num=60000#fill number cannot be negative, cannot be too large
 kaggle_output=False
-confidence_wo=0.5
-alpha=5
+confidence_wo=0.7
 sample_frac=1
 train_gp_frac=0.2
 train_wo_frac=0.1
@@ -22,7 +21,7 @@ small_group_act_size=1000000
 print('functions')
 ######################################
 def prediction_mod_funct(prediction,alpha,confidence_wo):
-    return confidence_wo*(np.exp(alpha*prediction)/np.exp(alpha)-0.5)+0.5
+    return confidence_wo*(prediction-0.5)+0.5
 
 def interpolate_funct(x,x_0,x_1,y_0,y_1,center=0.5,alpha=0.5):#alpha does not change gp_AUC
     l=2*(x-x_0)/(x_1-x_0)-1 #l(x_1)=1,l(x_0)=-1
@@ -31,7 +30,10 @@ def interpolate_funct(x,x_0,x_1,y_0,y_1,center=0.5,alpha=0.5):#alpha does not ch
 
 def interpolate_funct_boundary(x,x_0,y_0,boundary,decay,alpha=0.00001,alpha_limit=1):
 #    boundary_limit=(y_0+decay*alpha_limit*boundary)/(1+decay*alpha_limit*boundary)
-    boundary_limit=0
+    if y_0==1:
+        boundary_limit=0.9
+    else:
+        boundary_limit=0.1
     return (y_0-boundary_limit)*np.exp(-alpha*decay*abs(x-x_0))+boundary_limit
 
 def interpolate_rt(df_sorted_by_date,col_of_date_int,col_of_average,col_of_boundary,col_of_decay,interpolate_boundary,date_int,fillna_num=60000):
