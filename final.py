@@ -4,7 +4,7 @@
 print('parameters')
 ######################################
 fillna_num=60000#fill number cannot be negative, cannot be too large
-kaggle_output=True
+kaggle_output=False
 confidence_wo=0.1 
 sample_frac=1
 train_gp_frac=0.2
@@ -13,7 +13,7 @@ early_stopping_rounds=10
 eta_gp=0.1
 eta_wo=0.02
 num_round_gp =60
-num_round_wo =500
+num_round_wo =700
 tree_build_subsample=1
 col_sample_tree=1
 small_group_act_size=1000000
@@ -143,9 +143,9 @@ def hist_bin(pds,bin_size):
 ######################################
 print('read in data')
 ######################################
-act_train=pd.read_csv('act_train.csv',parse_dates=['date'])
-act_test=pd.read_csv('act_test.csv',parse_dates=['date'])
-peo_data=pd.read_csv('people.csv',parse_dates=['date'])
+act_train=pd.read_csv('../act_train.csv',parse_dates=['date'])
+act_test=pd.read_csv('../act_test.csv',parse_dates=['date'])
+peo_data=pd.read_csv('../people.csv',parse_dates=['date'])
 ######################################
 print('train test split')
 ######################################
