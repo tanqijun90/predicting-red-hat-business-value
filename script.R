@@ -20,14 +20,15 @@ cat("Processing data\n")
 
 people$char_1<-NULL #unnecessary duplicate to char_2
 names(people)[2:length(names(people))]=paste0('people_',names(people)[2:length(names(people))])
-
+%it just renames columns in people
 
 p_logi <- names(people)[which(sapply(people, is.logical))]
 for (col in p_logi) set(people, j = col, value = as.numeric(people[[col]]))
+%change logical columns to numeric ones
 
 #reducing group_1 dimension
 people$people_group_1[people$people_group_1 %in% names(which(table(people$people_group_1)==1))]='group unique'
-
+%change the groups with unique appearances to the name 'group unique'
 
 #reducing char_10 dimension
 #unique.char_10=
@@ -49,11 +50,14 @@ Y <- d1$outcome
 d1$outcome <- NULL
 
 row.train=nrow(train)
+%return the number of rows
 gc(verbose=FALSE)
+%gc is garbage collection
+
 
 D=rbind(d1,d2)
 D$i=1:dim(D)[1]
-
+%D$i is just an index
 
 ###uncomment this for CV run
 #set.seed(120)
@@ -72,7 +76,9 @@ char.cols=c('activity_category','people_group_1',
 for (f in char.cols) {
   if (class(D[[f]])=="character") {
     levels <- unique(c(D[[f]]))
+% c functioin combine things into a vector
     D[[f]] <- as.numeric(factor(D[[f]], levels=levels))
+% change character into numerics
   }
 }
 
