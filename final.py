@@ -404,7 +404,7 @@ if not kaggle_output:
     print('lower_bound',auc_11*gp_per**2+2*auc_12*gp_per*wo_per+auc_22*wo_per**2)
 else:
     pred_gp=bst_gp.predict(dtest_gp)
-    pred_wo=prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)*0+0.505668693292118
+    pred_wo=prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)
     act_id_gp=data_test[data_test['group_1'].isin(gp_intersect)]['activity_id']
     act_id_wo=data_test[~ data_test['group_1'].isin(gp_intersect)]['activity_id']
     output_gp = pd.DataFrame({ 'activity_id' : act_id_gp, 'outcome': pred_gp })
