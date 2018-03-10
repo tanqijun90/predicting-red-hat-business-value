@@ -117,10 +117,11 @@ def prod_feature(data,col1,col2,new_col_name='no_name_provided'):
     data.rename(columns={new_col_name+'_new':new_col_name},inplace=True)
     return data
 
-def secondary_feature(data,col_p,col_s):
+def secondary_feature(data,col_p,col_s,fillna_num=60000):
     col_prim=data[col_p]
     col_secd=data[col_s]
     col_prim[col_prim.isnull()]=col_secd[col_prim.isnull()]
+    col_prim[col_prim==fillna_num]=col_secd[col_prim==fillna_num]
     data[col_p]=col_prim
     return data
 
@@ -392,8 +393,8 @@ print('output')
 ######################################
 from sklearn.metrics import roc_auc_score
 if not kaggle_output:
-    gp_per=417507/498687
-    wo_per=81180/498687
+    gp_per=429614/498687
+    wo_per=69073/498687
     auc_11=roc_auc_score(local_outcome_gp,bst_gp.predict(dtest_gp))
     auc_22=roc_auc_score(local_outcome_wo,bst_wo.predict(dtest_wo))
     auc_12=1-np.sqrt((1-auc_11)/2)
@@ -403,7 +404,9 @@ if not kaggle_output:
     print('optimistic',auc_11*gp_per**2+2*np.sqrt(auc_11)*gp_per*wo_per+auc_22*wo_per**2)
     print('lower_bound',auc_11*gp_per**2+2*auc_12*gp_per*wo_per+auc_22*wo_per**2)
 else:
-    pred_gp=bst_gp.predict(dtest_gp)*0+df_test_gp['act_date_int_group_1_rt']
+    t_df_test_gp=df_test_gp[['act_date_int_group_1_rt','act_date_int_group_1_rt_boundary']]
+    t_df_test_gp=secondary_feature(t_df_test_gp,'act_date_int_group_1_rt','act_date_int_group_1_rt_boundary')
+    pred_gp=bst_gp.predict(dtest_gp)*0+t_df_test_gp['act_date_int_group_1_rt']
     pred_wo=prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)*0+0.505668693292118
     act_id_gp=data_test[data_test['group_1'].isin(gp_intersect)]['activity_id']
     act_id_wo=data_test[~ data_test['group_1'].isin(gp_intersect)]['activity_id']
