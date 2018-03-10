@@ -14,7 +14,7 @@ early_stopping_rounds=10
 eta_gp=0.1
 eta_wo=0.02
 num_round_gp =60
-num_round_wo =5
+num_round_wo =700
 tree_build_subsample=1
 col_sample_tree=1
 small_group_act_size=10000000
@@ -35,8 +35,7 @@ def interpolate_funct_boundary(x,x_0,y_0,boundary,decay,alpha=0.00001,alpha_limi
         boundary_limit=0.95
     else:
         boundary_limit=0.05
-    return boundary_limit
- #   return (y_0-boundary_limit)*np.exp(-alpha*decay*abs(x-x_0))+boundary_limit
+    return (y_0-boundary_limit)*np.exp(-alpha*decay*abs(x-x_0))+boundary_limit
 
 def interpolate_rt(df_sorted_by_date,col_of_date_int,col_of_average,col_of_boundary,col_of_decay,interpolate_boundary,date_int,fillna_num=60000):
     if interpolate_boundary:
@@ -272,7 +271,7 @@ categorical_col=categorical_col+['act_weekday','act_week_num', 'char_6_y_prod_ch
 
 use_col_gp=use_col_gp+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','act_week_num', 'is_weekend','act_date_int', 'peo_date_int', 'group_act_size','char_6_y_prod_char_2_y','char_2_y_char_6_y_char_7_y_char_9_y_rt', 'group_1_rt','act_date_int_group_1_rt', 'act_date_int_group_1_rt_boundary','group_1_rt_s', 'group_1_rt_us', 'act_date_int_group_1_rt_boundary_s','act_date_int_group_1_rt_boundary_us','char_2_y_char_6_y_char_7_y_char_9_y_rt_s','char_2_y_char_6_y_char_7_y_char_9_y_rt_us']
 
-use_col_wo=use_col_wo+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend', 'act_date_int', 'peo_date_int', 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y']#, 'char_1_y_prod_char_8_y']#'act_week_num',
+use_col_wo=use_col_wo+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend', 'act_date_int', 'peo_date_int']#, 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y']#, 'char_1_y_prod_char_8_y']#'act_week_num',
 ######################################
 print('df_train_gp water down')
 ######################################
@@ -404,9 +403,7 @@ if not kaggle_output:
     print('optimistic',auc_11*gp_per**2+2*np.sqrt(auc_11)*gp_per*wo_per+auc_22*wo_per**2)
     print('lower_bound',auc_11*gp_per**2+2*auc_12*gp_per*wo_per+auc_22*wo_per**2)
 else:
-    t_df_test_gp=df_test_gp[['act_date_int_group_1_rt','act_date_int_group_1_rt_boundary']]
-    t_df_test_gp=secondary_feature(t_df_test_gp,'act_date_int_group_1_rt','act_date_int_group_1_rt_boundary')
-    pred_gp=bst_gp.predict(dtest_gp)*0+t_df_test_gp['act_date_int_group_1_rt']
+    pred_gp=bst_gp.predict(dtest_gp)
     pred_wo=prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)*0+0.505668693292118
     act_id_gp=data_test[data_test['group_1'].isin(gp_intersect)]['activity_id']
     act_id_wo=data_test[~ data_test['group_1'].isin(gp_intersect)]['activity_id']
