@@ -17,7 +17,7 @@ num_round_gp =60
 num_round_wo =5
 tree_build_subsample=1
 col_sample_tree=1
-small_group_act_size=1000000
+small_group_act_size=10000000
 ######################################
 print('functions')
 ######################################
@@ -32,10 +32,11 @@ def interpolate_funct(x,x_0,x_1,y_0,y_1,center=0.5,alpha=0.5):#alpha does not ch
 def interpolate_funct_boundary(x,x_0,y_0,boundary,decay,alpha=0.00001,alpha_limit=1):
 #    boundary_limit=(y_0+decay*alpha_limit*boundary)/(1+decay*alpha_limit*boundary)
     if y_0==1:
-        boundary_limit=0.9
+        boundary_limit=0.95
     else:
-        boundary_limit=0.1
-    return (y_0-boundary_limit)*np.exp(-alpha*decay*abs(x-x_0))+boundary_limit
+        boundary_limit=0.05
+    return boundary_limit
+ #   return (y_0-boundary_limit)*np.exp(-alpha*decay*abs(x-x_0))+boundary_limit
 
 def interpolate_rt(df_sorted_by_date,col_of_date_int,col_of_average,col_of_boundary,col_of_decay,interpolate_boundary,date_int,fillna_num=60000):
     if interpolate_boundary:
@@ -300,9 +301,9 @@ df_train_gp=secondary_feature(df_train_gp,'group_1_rt','fill05')
 df_train_gp=secondary_feature(df_train_gp,'char_2_y_char_6_y_char_7_y_char_9_y_rt','fill05')
 
 #We want to deal with the entries of the groups that are left out in the sampling. The way we do this is to assume their act_date_int_group_1_rt are all in the boundary, and are all 0.5
-gp_intersect=np.intersect1d(df_train_gp['group_1'].values,t_df_train_gp_frac['group_1'].values)
+t_gp_intersect=np.intersect1d(df_train_gp['group_1'].values,t_df_train_gp_frac['group_1'].values)
 t_act_date_int_group_1_rt=df_train_gp['act_date_int_group_1_rt']
-t_act_date_int_group_1_rt[~df_train_gp['group_1'].isin(gp_intersect)]=0.5
+t_act_date_int_group_1_rt[~df_train_gp['group_1'].isin(t_gp_intersect)]=0.5
 df_train_gp['act_date_int_group_1_rt']=t_act_date_int_group_1_rt
 
 df_train_gp=unmask_rt(df_train_gp,'group_1_rt',['act_date_int_group_1_rt'])
@@ -402,8 +403,8 @@ if not kaggle_output:
     print('optimistic',auc_11*gp_per**2+2*np.sqrt(auc_11)*gp_per*wo_per+auc_22*wo_per**2)
     print('lower_bound',auc_11*gp_per**2+2*auc_12*gp_per*wo_per+auc_22*wo_per**2)
 else:
-    pred_gp=bst_gp.predict(dtest_gp)
-    pred_wo=prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)
+    pred_gp=bst_gp.predict(dtest_gp)*0+df_test_gp['act_date_int_group_1_rt']
+    pred_wo=prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)*0+0.505668693292118
     act_id_gp=data_test[data_test['group_1'].isin(gp_intersect)]['activity_id']
     act_id_wo=data_test[~ data_test['group_1'].isin(gp_intersect)]['activity_id']
     output_gp = pd.DataFrame({ 'activity_id' : act_id_gp, 'outcome': pred_gp })
