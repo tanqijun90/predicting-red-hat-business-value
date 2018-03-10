@@ -4,7 +4,7 @@
 print('parameters')
 ######################################
 fillna_num=60000#fill number cannot be negative, cannot be too large
-kaggle_output=False
+kaggle_output=True
 confidence_wo=0.2
 alpha=1
 sample_frac=1
@@ -142,11 +142,11 @@ def final_data_treat(data,fillna_num=60000):
         data[col]=data[col].astype('int32',errors='ignore')
     return data
 
-def hist_bin(pds,bin_size):
-    hist_b=pds.value_counts()
-    hist=((hist_b.cumsum()-hist_b/2)/hist_b.sum()*bin_size).apply(np.ceil).astype('int32')
-    print('{}{}'.format('Actual bin number: ',len(np.unique(hist.values))))
-    return hist
+# def hist_bin(pds,bin_size):
+#     hist_b=pds.value_counts()
+#     hist=((hist_b.cumsum()-hist_b/2)/hist_b.sum()*bin_size).apply(np.ceil).astype('int32')
+#     print('{}{}'.format('Actual bin number: ',len(np.unique(hist.values))))
+#     return hist
 ######################################
 print('read in data')
 ######################################
@@ -253,8 +253,8 @@ data_train=m_total.iloc[:len(act_train)]
 data_test=m_total.iloc[len(act_train):]
 df_train_gp=data_train[data_train['group_1'].isin(gp_intersect)].copy()
 train_gp_outcome=df_train_gp['outcome']
-#df_train_wo=data_train.copy()
-df_train_wo=data_train[data_train['group_act_size']<=small_group_act_size].copy()
+df_train_wo=data_train.copy()
+#df_train_wo=data_train[data_train['group_act_size']<=small_group_act_size].copy()
 train_wo_outcome=df_train_wo['outcome']
 ######################################
 print('columns for training/testing')
@@ -270,7 +270,7 @@ categorical_col=categorical_col+['act_weekday','act_week_num', 'char_6_y_prod_ch
 
 use_col_gp=use_col_gp+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','act_week_num', 'is_weekend','act_date_int', 'peo_date_int', 'group_act_size','char_6_y_prod_char_2_y','char_2_y_char_6_y_char_7_y_char_9_y_rt', 'group_1_rt','act_date_int_group_1_rt', 'act_date_int_group_1_rt_boundary','group_1_rt_s', 'group_1_rt_us', 'act_date_int_group_1_rt_boundary_s','act_date_int_group_1_rt_boundary_us','char_2_y_char_6_y_char_7_y_char_9_y_rt_s','char_2_y_char_6_y_char_7_y_char_9_y_rt_us']
 
-use_col_wo=use_col_wo+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend', 'act_date_int', 'peo_date_int']# 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y', 'char_1_y_prod_char_8_y']#'act_week_num',
+use_col_wo=use_col_wo+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend', 'act_date_int', 'peo_date_int', 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y']#, 'char_1_y_prod_char_8_y']#'act_week_num',
 ######################################
 print('df_train_gp water down')
 ######################################
