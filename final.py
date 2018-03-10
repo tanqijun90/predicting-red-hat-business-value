@@ -2,8 +2,8 @@
 print('parameters')
 ######################################
 fillna_num=60000#fill number cannot be negative, cannot be too large
-kaggle_output=True
-confidence_wo=0.2
+kaggle_output=False
+confidence_wo=0.001
 alpha=1
 sample_frac=1
 train_gp_frac=0.2# we can play with this number
@@ -399,15 +399,21 @@ print('output')
 ######################################
 from sklearn.metrics import roc_auc_score
 if not kaggle_output:
-    gp_per=429614/498687
-    wo_per=69073/498687
+    gp_per=dtest_gp.num_row()/(dtest_gp.num_row()+dtest_wo.num_row())
+    wo_per=dtest_wo.num_row()/(dtest_gp.num_row()+dtest_wo.num_row())
+    gp_per_k=429614/498687
+    wo_per_k=69073/498687
     auc_11=roc_auc_score(test_outcome_gp,bst_gp.predict(dtest_gp))
     auc_22=roc_auc_score(test_outcome_wo,bst_wo.predict(dtest_wo))
     auc_12=1-np.sqrt((1-auc_11)/2)
     print(auc_11)
     print(auc_22)
     print(roc_auc_score(np.concatenate((test_outcome_gp,test_outcome_wo)),np.concatenate((bst_gp.predict(dtest_gp),prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)))))
+    print('kaggle optimistic',auc_11*gp_per_k**2+2*np.sqrt(auc_11)*gp_per_k*wo_per_k+auc_22*wo_per_k**2)
+    print('kaggle estimate',auc_11*gp_per_k**2+2*0.989*gp_per_k*wo_per_k+auc_22*wo_per_k**2)
+    print('kaggle lower_bound',auc_11*gp_per_k**2+2*auc_12*gp_per_k*wo_per_k+auc_22*wo_per_k**2)
     print('optimistic',auc_11*gp_per**2+2*np.sqrt(auc_11)*gp_per*wo_per+auc_22*wo_per**2)
+    print('estimate',auc_11*gp_per**2+2*0.989*gp_per*wo_per+auc_22*wo_per**2)
     print('lower_bound',auc_11*gp_per**2+2*auc_12*gp_per*wo_per+auc_22*wo_per**2)
 else:
     pred_gp=bst_gp.predict(dtest_gp)
