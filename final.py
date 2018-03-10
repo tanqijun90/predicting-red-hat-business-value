@@ -14,7 +14,7 @@ early_stopping_rounds=10
 eta_gp=0.1
 eta_wo=0.02
 num_round_gp =60
-num_round_wo =500
+num_round_wo =100
 tree_build_subsample=1
 col_sample_tree=1
 small_group_act_size=1000000
@@ -391,9 +391,16 @@ print('output')
 ######################################
 from sklearn.metrics import roc_auc_score
 if not kaggle_output:
-    print(roc_auc_score(local_outcome_gp,bst_gp.predict(dtest_gp)))
-    print(roc_auc_score(local_outcome_wo,bst_wo.predict(dtest_wo)))
+    gp_per=417507/498687
+    wo_per=81180/498687
+    auc_11=roc_auc_score(local_outcome_gp,bst_gp.predict(dtest_gp))
+    auc_22=roc_auc_score(local_outcome_wo,bst_wo.predict(dtest_wo))
+    auc_12=1-np.sqrt((1-auc_11)/2)
+    print(auc_11)
+    print(auc_22)
     print(roc_auc_score(np.concatenate((local_outcome_gp,local_outcome_wo)),np.concatenate((bst_gp.predict(dtest_gp),prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)))))
+    print('optimistic',auc_11*gp_per**2+2*np.sqrt(auc_11)*gp_per*wo_per+auc_22*wo_per**2)
+    print('lower_bound',auc_11*gp_per**2+2*auc_12*gp_per*wo_per+auc_22*wo_per**2)
 else:
     pred_gp=bst_gp.predict(dtest_gp)
     pred_wo=(bst_wo.predict(dtest_wo)-0.5)*confidence_wo+0.5

@@ -7,7 +7,7 @@ small_group_act_size=150
 ######################################
 print('functions')
 ######################################
-def interpolate_funct(x,x_0,x_1,y_0,y_1,center=0.5,alpha=0.5):#alpha does not change gp_AUC
+def interpolate_funct(x,x_0,x_1,y_0,y_1,center=0.5,alpha=2):#alpha does not change gp_AUC
     l=2*(x-x_0)/(x_1-x_0)-1 #l(x_1)=1,l(x_0)=-1
     phi=np.tanh(alpha*l)/np.tanh(alpha)#phi(1)=1,phi(-1)=-1
     return (y_1-y_0)*phi/2+(y_1+y_0)/2
@@ -18,6 +18,7 @@ def interpolate_funct_boundary(x,x_0,y_0,boundary,decay,alpha=0.00001,alpha_limi
         boundary_limit=0.9
     else:
         boundary_limit=0.1
+#    return boundary_limit
     return (y_0-boundary_limit)*np.exp(-alpha*decay*abs(x-x_0))+boundary_limit
 
 def interpolate_rt(df_sorted_by_date,col_of_date_int,col_of_average,col_of_boundary,col_of_decay,date_int):
