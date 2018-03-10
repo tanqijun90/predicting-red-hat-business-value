@@ -1,5 +1,3 @@
-#new interpolation function
-#new features
 ######################################
 print('parameters')
 ######################################
@@ -8,7 +6,7 @@ kaggle_output=True
 confidence_wo=0.2
 alpha=1
 sample_frac=1
-train_gp_frac=0.2
+train_gp_frac=0.2# we can play with this number
 train_wo_frac=0.1
 early_stopping_rounds=10
 eta_gp=0.1
@@ -164,7 +162,7 @@ if not kaggle_output:
     t_peo_train,t_peo_test=train_test_split(peo_train_fraction,test_size=0.2)
     act_test=act_train[act_train['people_id'].isin(t_peo_test['people_id'])]
     act_train=act_train[act_train['people_id'].isin(t_peo_train['people_id'])]
-    local_outcome=act_test[['activity_id','outcome']]
+    test_outcome=act_test[['activity_id','outcome']]
     del act_test['outcome']
 ######################################
 print('initial data treatment')
@@ -202,6 +200,7 @@ gpb=m_total.groupby('group_1')
 t_group_act_size=gpb['activity_id'].count()
 t_group_act_size.name='group_act_size'
 m_total=m_total.merge(pd.DataFrame(t_group_act_size),how='left',left_on='group_1',right_index=True)
+del t_group_act_size
 #############################################
 print('product and success rate feature engineering')
 #############################################
@@ -253,10 +252,10 @@ m_total=final_data_treat(m_total)
 data_train=m_total.iloc[:len(act_train)]
 data_test=m_total.iloc[len(act_train):]
 df_train_gp=data_train[data_train['group_1'].isin(gp_intersect)].copy()
-train_gp_outcome=df_train_gp['outcome']
+train_outcome_gp=df_train_gp['outcome']
 df_train_wo=data_train.copy()
 #df_train_wo=data_train[data_train['group_act_size']<=small_group_act_size].copy()
-train_wo_outcome=df_train_wo['outcome']
+train_outcome_wo=df_train_wo['outcome']
 ######################################
 print('columns for training/testing')
 ######################################
@@ -315,6 +314,36 @@ del t_act_date_int_group_1_rt
 
 df_train_gp=df_train_gp[use_col_gp]
 ######################################
+print('gp one hot')
+######################################
+from sklearn.preprocessing import OneHotEncoder
+from scipy.sparse import hstack
+df_categorical_col_gp=list(set(use_col_gp)&set(categorical_col))
+df_not_categorical_col_gp=list(set(use_col_gp)-set(categorical_col))
+enc_gp=OneHotEncoder(handle_unknown='ignore')
+enc_gp=enc_gp.fit(pd.concat([df_train_gp[df_categorical_col_gp],data_test[df_categorical_col_gp]]))
+df_cat_train_gp=enc_gp.transform(df_train_gp[df_categorical_col_gp])
+df_spr_train_gp=hstack((df_train_gp[df_not_categorical_col_gp],df_cat_train_gp))
+dtrain_gp=xgb.DMatrix(df_spr_train_gp,label=train_outcome_gp)
+######################################
+print('prepare test_gp')
+######################################
+df_test_gp=data_test[data_test['group_1'].isin(gp_intersect)]
+if not kaggle_output:
+    df_test_gp=df_test_gp.merge(test_outcome,how='left',left_on='activity_id',right_on='activity_id')
+    test_outcome_gp=df_test_gp['outcome_y']
+df_test_gp=secondary_feature(df_test_gp,'char_2_y_char_6_y_char_7_y_char_9_y_rt','fill05')
+df_test_gp=df_test_gp[use_col_gp]
+df_cat_test_gp=enc_gp.transform(df_test_gp[df_categorical_col_gp])
+df_spr_test_gp=hstack((df_test_gp[df_not_categorical_col_gp],df_cat_test_gp))
+dtest_gp=xgb.DMatrix(df_spr_test_gp)
+######################################
+print('run test_gp')
+######################################
+watchlist  = [(dtrain_gp,'train')]
+param = {'max_depth':10, 'eta':eta_gp, 'silent':1, 'objective':'binary:logistic','nthread':6,'eval_metric':'auc','subsample':tree_build_subsample,'colsample_bytree': col_sample_tree,'min_child_weight':0,'booster':'gbtree' }
+bst_gp = xgb.train(param, dtrain_gp, num_round_gp, watchlist,early_stopping_rounds=early_stopping_rounds)
+######################################
 print('df_train_wo water down')
 ######################################
 # df_train_wo.rename(columns={'char_6_y_char_38_rt':'char_6_y_char_38_rt_optimistic'},inplace=True)
@@ -337,53 +366,31 @@ print('df_train_wo water down')
 # df_train_wo=secondary_feature(df_train_wo,'char_5_y_char_7_y_char_32_rt','fill05')
 
 # del t_df_train_wo_frac
-
 df_train_wo=df_train_wo[use_col_wo]
 ######################################
-print('create OneHot')
+print('wo one hot')
 ######################################
-df_categorical_col_gp=list(set(use_col_gp)&set(categorical_col))
-df_not_categorical_col_gp=list(set(use_col_gp)-set(categorical_col))
 df_categorical_col_wo=list(set(use_col_wo)&set(categorical_col))
 df_not_categorical_col_wo=list(set(use_col_wo)-set(categorical_col))
-from sklearn.preprocessing import OneHotEncoder
-enc_gp=OneHotEncoder(handle_unknown='ignore')
-enc_gp=enc_gp.fit(pd.concat([df_train_gp[df_categorical_col_gp],data_test[df_categorical_col_gp]]))
 enc_wo=OneHotEncoder(handle_unknown='ignore')
 enc_wo=enc_wo.fit(pd.concat([df_train_wo[df_categorical_col_wo],data_test[df_categorical_col_wo]]))
-df_cat_train_gp=enc_gp.transform(df_train_gp[df_categorical_col_gp])
 df_cat_train_wo=enc_wo.transform(df_train_wo[df_categorical_col_wo])
-from scipy.sparse import hstack
-df_spr_train_gp=hstack((df_train_gp[df_not_categorical_col_gp],df_cat_train_gp))
 df_spr_train_wo=hstack((df_train_wo[df_not_categorical_col_wo],df_cat_train_wo))
-dtrain_gp=xgb.DMatrix(df_spr_train_gp,label=train_gp_outcome)
-dtrain_wo=xgb.DMatrix(df_spr_train_wo,label=train_wo_outcome)
+dtrain_wo=xgb.DMatrix(df_spr_train_wo,label=train_outcome_wo)
 ######################################
-print('prepare test group')
+print('prepare test_wo')
 ######################################
-df_test_gp=data_test[data_test['group_1'].isin(gp_intersect)]
 df_test_wo=data_test[~data_test['group_1'].isin(gp_intersect)]
 if not kaggle_output:
-    df_test_gp=df_test_gp.merge(local_outcome,how='left',left_on='activity_id',right_on='activity_id')
-    df_test_wo=df_test_wo.merge(local_outcome,how='left',left_on='activity_id',right_on='activity_id')
-    local_outcome_gp=df_test_gp['outcome_y']
-    local_outcome_wo=df_test_wo['outcome_y']
-df_test_gp=secondary_feature(df_test_gp,'char_2_y_char_6_y_char_7_y_char_9_y_rt','fill05')
-df_test_gp=df_test_gp[use_col_gp]
+    df_test_wo=df_test_wo.merge(test_outcome,how='left',left_on='activity_id',right_on='activity_id')
+    test_outcome_wo=df_test_wo['outcome_y']
 df_test_wo=df_test_wo[use_col_wo]
-df_cat_test_gp=enc_gp.transform(df_test_gp[df_categorical_col_gp])
 df_cat_test_wo=enc_wo.transform(df_test_wo[df_categorical_col_wo])
-df_spr_test_gp=hstack((df_test_gp[df_not_categorical_col_gp],df_cat_test_gp))
 df_spr_test_wo=hstack((df_test_wo[df_not_categorical_col_wo],df_cat_test_wo))
-dtest_gp=xgb.DMatrix(df_spr_test_gp)
 dtest_wo=xgb.DMatrix(df_spr_test_wo)
 ######################################
-print('run test')
+print('run test_wo')
 ######################################
-watchlist  = [(dtrain_gp,'train')]
-param = {'max_depth':10, 'eta':eta_gp, 'silent':1, 'objective':'binary:logistic','nthread':6,'eval_metric':'auc','subsample':tree_build_subsample,'colsample_bytree': col_sample_tree,'min_child_weight':0,'booster':'gbtree' }
-bst_gp = xgb.train(param, dtrain_gp, num_round_gp, watchlist,early_stopping_rounds=early_stopping_rounds)
-
 watchlist  = [(dtrain_wo,'train')]
 param = {'max_depth':10, 'eta':eta_wo, 'silent':1, 'objective':'binary:logistic','nthread':6,'eval_metric':'auc','subsample':tree_build_subsample,'colsample_bytree': col_sample_tree,'min_child_weight':0,'booster':'gbtree' }
 bst_wo = xgb.train(param, dtrain_wo, num_round_wo, watchlist,early_stopping_rounds=early_stopping_rounds)
@@ -394,12 +401,12 @@ from sklearn.metrics import roc_auc_score
 if not kaggle_output:
     gp_per=429614/498687
     wo_per=69073/498687
-    auc_11=roc_auc_score(local_outcome_gp,bst_gp.predict(dtest_gp))
-    auc_22=roc_auc_score(local_outcome_wo,bst_wo.predict(dtest_wo))
+    auc_11=roc_auc_score(test_outcome_gp,bst_gp.predict(dtest_gp))
+    auc_22=roc_auc_score(test_outcome_wo,bst_wo.predict(dtest_wo))
     auc_12=1-np.sqrt((1-auc_11)/2)
     print(auc_11)
     print(auc_22)
-    print(roc_auc_score(np.concatenate((local_outcome_gp,local_outcome_wo)),np.concatenate((bst_gp.predict(dtest_gp),prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)))))
+    print(roc_auc_score(np.concatenate((test_outcome_gp,test_outcome_wo)),np.concatenate((bst_gp.predict(dtest_gp),prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)))))
     print('optimistic',auc_11*gp_per**2+2*np.sqrt(auc_11)*gp_per*wo_per+auc_22*wo_per**2)
     print('lower_bound',auc_11*gp_per**2+2*auc_12*gp_per*wo_per+auc_22*wo_per**2)
 else:
