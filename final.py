@@ -1,12 +1,12 @@
 ######################################
 print('parameters')
 ######################################
-fillna_num=60000#fill number cannot be negative, cannot be too large
+fillna_num=60000
 kaggle_output=True
 confidence_wo=0.2
-alpha=1
+center=0.5
 sample_frac=1
-train_gp_frac=0.2# we can play with this number
+train_gp_frac=0.1
 train_wo_frac=0.1
 early_stopping_rounds=10
 eta_gp=0.1
@@ -19,24 +19,27 @@ small_group_act_size=10000000
 ######################################
 print('functions')
 ######################################
-def prediction_mod_funct(prediction,alpha,confidence_wo):
-    return confidence_wo*(prediction-0.5)+0.5
+def prediction_mod_funct(prediction,center,confidence_wo):
+    '''Chcange the prediction of activities whose group is not in the training set so that it combines better with the predictions of activities whose group are.'''
+    return confidence_wo*(prediction-center)+center
 
-def interpolate_funct(x,x_0,x_1,y_0,y_1,center=0.5,alpha=0.5):#alpha does not change gp_AUC
+def interpolate_funct(x,x_0,x_1,y_0,y_1,center=0.5,alpha=0.5):
+    '''Interpolate the group success rate w.r.t. activity date. Note that alpha does not change gp_AUC.'''
     l=2*(x-x_0)/(x_1-x_0)-1 #l(x_1)=1,l(x_0)=-1
     phi=np.tanh(alpha*l)/np.tanh(alpha)#phi(1)=1,phi(-1)=-1
     return (y_1-y_0)*phi/2+(y_1+y_0)/2
 
 def interpolate_funct_boundary(x,x_0,y_0,boundary,decay,alpha=0.00001,alpha_limit=1):
+    '''Predict the group success rate when the date is outside the range of dates where the rate is known.'''
 #    boundary_limit=(y_0+decay*alpha_limit*boundary)/(1+decay*alpha_limit*boundary)
     if y_0==1:
         boundary_limit=0.95
     else:
         boundary_limit=0.05
-#    return boundary_limit
     return (y_0-boundary_limit)*np.exp(-alpha*decay*abs(x-x_0))+boundary_limit
 
 def interpolate_rt(df_sorted_by_date,col_of_date_int,col_of_average,col_of_boundary,col_of_decay,interpolate_boundary,date_int,fillna_num=60000):
+    '''Given group success rate of one group sorted by date and a date, interpolate the group success rate at that given date'''
     if interpolate_boundary:
         if date_int > df_sorted_by_date[col_of_date_int].iloc[-1]:
             return interpolate_funct_boundary(date_int,df_sorted_by_date[col_of_date_int].iloc[-1],df_sorted_by_date[col_of_average].iloc[-1],df_sorted_by_date[col_of_boundary].iloc[-1],df_sorted_by_date[col_of_decay].iloc[-1])
@@ -54,10 +57,12 @@ def interpolate_rt(df_sorted_by_date,col_of_date_int,col_of_average,col_of_bound
         return interpolate_funct(date_int,df_sorted_by_date[col_of_date_int].iloc[ind-1],df_sorted_by_date[col_of_date_int].iloc[ind],df_sorted_by_date[col_of_average].iloc[ind-1],df_sorted_by_date[col_of_average].iloc[ind])
 
 def interpolate_rt_wrapped(df_to_interpolate,gpb_sorted,col_of_date_int,col_of_average,col_of_boundary,col_of_decay,interpolate_boundary):
+    '''This is an auxillary function that makes it possible to call interpolate_rt via the map function.'''
     rt=df_to_interpolate.apply(lambda entry : interpolate_rt(gpb_sorted.loc[entry[0]],col_of_date_int,col_of_average,col_of_boundary,col_of_decay,interpolate_boundary,entry[1]),axis=1)
     return rt
 
 def interpolate_rt_df(df_to_interpolate,df_data,group_by,col_of_date_int,col_of_average,col_of_boundary,col_of_decay,interpolate_boundary=False):
+    '''Given a training data and a data to interpolate, for each group_by category, the function interpolates the average w.r.t. date.'''
     from functools import partial
     gp_intersect=np.intersect1d(df_to_interpolate[group_by].values,df_data[group_by].values)
     df_to_interpolate_gp=df_to_interpolate[df_to_interpolate[group_by].isin(gp_intersect)]
@@ -78,6 +83,7 @@ def interpolate_rt_df(df_to_interpolate,df_data,group_by,col_of_date_int,col_of_
     return df_to_interpolate
     
 def success_rate(data_total,cols_list,data_use=[],fillna_num=60000):
+    '''Compute the success rate of the product features in cols_list.'''
     if len(data_use)==0:
         data_use=data_total
     gpb=data_use.groupby(cols_list)
@@ -91,6 +97,7 @@ def success_rate(data_total,cols_list,data_use=[],fillna_num=60000):
     return data_total
 
 def unmask_rt(data_total,col_rt,col_over=[],fillna_num=60000):
+    '''Unmask col_rt at places where col_over is NA.'''
     data_total[col_rt+'_s']=(data_total[col_rt]>=0.5) &(data_total[col_rt]<fillna_num)
     data_total[col_rt+'_us']=data_total[col_rt]<0.5
     for col in col_over:
@@ -101,6 +108,7 @@ def unmask_rt(data_total,col_rt,col_over=[],fillna_num=60000):
     return data_total
 
 def prod_feature(data,col1,col2,new_col_name='no_name_provided'):
+    '''Add a product feature to the DataFrame.'''
     if new_col_name=='no_name_provided':
         new_col_name=col1+'_prod_'+col2
     gpb=data.groupby(by=[col1,col2])
@@ -116,6 +124,7 @@ def prod_feature(data,col1,col2,new_col_name='no_name_provided'):
     return data
 
 def secondary_feature(data,col_p,col_s,fillna_num=60000):
+    '''Fill NA in a primary feature with values in a secondary feature.'''
     col_prim=data[col_p]
     col_secd=data[col_s]
     col_prim[col_prim.isnull()]=col_secd[col_prim.isnull()]
@@ -143,6 +152,7 @@ def final_data_treat(data,fillna_num=60000):
     return data
 
 def hist_bin(data,col,bin_size):
+    '''Convert a feature with too many levels to a feature with less levels.'''
     hist_b=data[col].value_counts()
     hist=((hist_b.cumsum()-hist_b/2)/hist_b.sum()*bin_size).apply(np.ceil).astype('int32')
     hist.name=col+'_bin'
@@ -150,6 +160,7 @@ def hist_bin(data,col,bin_size):
     return data.merge(pd.DataFrame(hist),how='left',left_on=col,right_index=True)
 
 def congregate_small_category(data,col,max_num_corr):
+    '''Congregate categories with appearances less than max_num_corr into categories by the number of appearances.'''
     hist=data[col].value_counts()
     ind=pd.Series(range(len(hist)))
     ind.index=hist.index
@@ -288,10 +299,11 @@ categorical_col=categorical_col+['group_1_con','act_weekday','act_week_num', 'ch
 
 use_col_gp=use_col_gp+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','act_week_num', 'is_weekend','act_date_int', 'peo_date_int', 'group_act_size','char_6_y_prod_char_2_y','char_2_y_char_6_y_char_7_y_char_9_y_rt', 'group_1_rt','act_date_int_group_1_rt', 'act_date_int_group_1_rt_boundary','group_1_rt_s', 'group_1_rt_us', 'act_date_int_group_1_rt_boundary_s','act_date_int_group_1_rt_boundary_us','char_2_y_char_6_y_char_7_y_char_9_y_rt_s','char_2_y_char_6_y_char_7_y_char_9_y_rt_us']
 
-use_col_wo=use_col_wo+['group_1_con', 'is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend', 'act_date_int', 'peo_date_int', 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y']#, 'char_1_y_prod_char_8_y']#'act_week_num',
+use_col_wo=use_col_wo+['group_1_con', 'is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend', 'act_date_int', 'peo_date_int']#,'group_act_size']#, 'char_5_y_prod_char_6_y']#,'char_7_y_prod_char_9_y']#, 'char_1_y_prod_char_8_y']#'act_week_num',
 ######################################
 print('df_train_gp water down')
 ######################################
+#We want to water down the accuracy of features so that they are more similar to what would be available for testing data.
 df_train_gp.rename(columns={'act_date_int_group_1_rt':'act_date_int_group_1_rt_optimistic'},inplace=True)
 df_train_gp.rename(columns={'group_1_rt':'group_1_rt_optimistic'},inplace=True)
 df_train_gp.rename(columns={'act_date_int_group_1_rt_boundary':'act_date_int_group_1_rt_boundary_optimistic'},inplace=True)
@@ -435,7 +447,7 @@ if not kaggle_output:
     auc_12=1-np.sqrt((1-auc_11)/2)
     print(auc_11)
     print(auc_22)
-    print(roc_auc_score(np.concatenate((test_outcome_gp,test_outcome_wo)),np.concatenate((bst_gp.predict(dtest_gp),prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)))))
+    print(roc_auc_score(np.concatenate((test_outcome_gp,test_outcome_wo)),np.concatenate((bst_gp.predict(dtest_gp),prediction_mod_funct(bst_wo.predict(dtest_wo),center,confidence_wo)))))
     print('kaggle optimistic',auc_11*gp_per_k**2+2*np.sqrt(auc_11)*gp_per_k*wo_per_k+auc_22*wo_per_k**2)
     print('kaggle estimate',auc_11*gp_per_k**2+2*0.989*gp_per_k*wo_per_k+auc_22*wo_per_k**2)
     print('kaggle lower_bound',auc_11*gp_per_k**2+2*auc_12*gp_per_k*wo_per_k+auc_22*wo_per_k**2)
@@ -444,7 +456,7 @@ if not kaggle_output:
     print('lower_bound',auc_11*gp_per**2+2*auc_12*gp_per*wo_per+auc_22*wo_per**2)
 else:
     pred_gp=bst_gp.predict(dtest_gp)
-    pred_wo=prediction_mod_funct(bst_wo.predict(dtest_wo),alpha,confidence_wo)
+    pred_wo=prediction_mod_funct(bst_wo.predict(dtest_wo),center,confidence_wo)
     act_id_gp=data_test[data_test['group_1'].isin(gp_intersect)]['activity_id']
     act_id_wo=data_test[~ data_test['group_1'].isin(gp_intersect)]['activity_id']
     output_gp = pd.DataFrame({ 'activity_id' : act_id_gp, 'outcome': pred_gp })
