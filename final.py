@@ -3,7 +3,7 @@ print('parameters')
 ######################################
 fillna_num=60000#fill number cannot be negative, cannot be too large
 kaggle_output=True
-confidence_wo=0.001
+confidence_wo=0.2
 alpha=1
 sample_frac=1
 train_gp_frac=0.2# we can play with this number
@@ -142,11 +142,21 @@ def final_data_treat(data,fillna_num=60000):
         data[col]=data[col].astype('int32',errors='ignore')
     return data
 
-# def hist_bin(pds,bin_size):
-#     hist_b=pds.value_counts()
-#     hist=((hist_b.cumsum()-hist_b/2)/hist_b.sum()*bin_size).apply(np.ceil).astype('int32')
-#     print('{}{}'.format('Actual bin number: ',len(np.unique(hist.values))))
-#     return hist
+def hist_bin(data,col,bin_size):
+    hist_b=data[col].value_counts()
+    hist=((hist_b.cumsum()-hist_b/2)/hist_b.sum()*bin_size).apply(np.ceil).astype('int32')
+    hist.name=col+'_bin'
+    print('{}{}'.format('Actual bin number: ',len(np.unique(hist.values))))
+    return data.merge(pd.DataFrame(hist),how='left',left_on=col,right_index=True)
+
+def congregate_small_category(data,col,max_num_corr):
+    hist=data[col].value_counts()
+    ind=pd.Series(range(len(hist)))
+    ind.index=hist.index
+    ind.name=col+'_con'
+    for i in range(1,max_num_corr+1):
+        ind[hist==i]=(len(hist))+i
+    return data.merge(pd.DataFrame(ind),how='left',left_on=col,right_index=True)
 ######################################
 print('read in data')
 ######################################
@@ -246,6 +256,10 @@ m_total=unmask_rt(m_total,'group_1_rt',['act_date_int_group_1_rt'])
 m_total=unmask_rt(m_total,'act_date_int_group_1_rt_boundary',['act_date_int_group_1_rt'])
 m_total=unmask_rt(m_total,'char_2_y_char_6_y_char_7_y_char_9_y_rt',['act_date_int_group_1_rt'])
 ######################################
+print('group_1 congregate') 
+######################################
+m_total=congregate_small_category(m_total,'group_1',4)
+######################################
 print('final data treatment')
 ######################################
 m_total['fill05']=0.5
@@ -262,8 +276,8 @@ print('columns for training/testing')
 ######################################
 available_col=['activity_category', 'activity_id', 'char_1_x', 'char_10_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x', 'outcome', 'people_id', 'char_1_y', 'group_1', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_10_y', 'char_11', 'char_12', 'char_13', 'char_14','char_15', 'char_16', 'char_17', 'char_18', 'char_19', 'char_20','char_21', 'char_22', 'char_23', 'char_24', 'char_25', 'char_26','char_27', 'char_28', 'char_29', 'char_30', 'char_31', 'char_32','char_33', 'char_34', 'char_35', 'char_36', 'char_37', 'char_38']
 categorical_col=['activity_category', 'char_1_x', 'char_10_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x', 'char_1_y', 'group_1', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y']
-use_col_gp=['activity_category', 'char_1_x', 'char_10_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x',  'group_1', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_10_y', 'char_11', 'char_12', 'char_13', 'char_14','char_15', 'char_16', 'char_17', 'char_18', 'char_19', 'char_20','char_21', 'char_22', 'char_23', 'char_24', 'char_25', 'char_26','char_27', 'char_28', 'char_29', 'char_30', 'char_31', 'char_32','char_33', 'char_34', 'char_35', 'char_36', 'char_37', 'char_38']
-use_col_wo=['activity_category', 'char_1_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x','char_2_y', 'char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_10_y', 'char_11', 'char_12', 'char_13', 'char_14','char_15', 'char_16', 'char_17', 'char_18', 'char_19', 'char_20','char_21', 'char_22', 'char_23', 'char_24', 'char_25', 'char_26','char_27', 'char_28', 'char_29', 'char_30', 'char_31', 'char_32','char_33', 'char_34', 'char_35', 'char_36', 'char_37', 'char_38']#'char_10_x', 
+use_col_gp=['activity_category', 'char_1_x', 'char_10_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x',  'group_1_con', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_10_y', 'char_11', 'char_12', 'char_13', 'char_14','char_15', 'char_16', 'char_17', 'char_18', 'char_19', 'char_20','char_21', 'char_22', 'char_23', 'char_24', 'char_25', 'char_26','char_27', 'char_28', 'char_29', 'char_30', 'char_31', 'char_32','char_33', 'char_34', 'char_35', 'char_36', 'char_37', 'char_38']
+use_col_wo=['activity_category', 'char_1_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x','group_1_con','char_2_y', 'char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_10_y', 'char_11', 'char_12', 'char_13', 'char_14','char_15', 'char_16', 'char_17', 'char_18', 'char_19', 'char_20','char_21', 'char_22', 'char_23', 'char_24', 'char_25', 'char_26','char_27', 'char_28', 'char_29', 'char_30', 'char_31', 'char_32','char_33', 'char_34', 'char_35', 'char_36', 'char_37', 'char_38']#'char_10_x', 
 
 available_col=available_col+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend','act_week_num', 'act_date_int', 'peo_date_int', 'group_act_size','char_6_y_prod_char_2_y', 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y', 'char_1_y_prod_char_8_y','char_2_y_char_6_y_char_7_y_char_9_y_rt', 'group_1_rt','act_date_int_group_1_rt', 'act_date_int_group_1_rt_boundary','group_1_rt_s', 'group_1_rt_us', 'act_date_int_group_1_rt_boundary_s','act_date_int_group_1_rt_boundary_us','char_2_y_char_6_y_char_7_y_char_9_y_rt_s','char_2_y_char_6_y_char_7_y_char_9_y_rt_us', 'fill05']
 
@@ -367,6 +381,13 @@ print('df_train_wo water down')
 # df_train_wo=secondary_feature(df_train_wo,'char_5_y_char_7_y_char_32_rt','fill05')
 
 # del t_df_train_wo_frac
+
+#Here we mimic the Kaggle kernels, and combine groups with unique appearances into categories
+
+
+
+
+
 df_train_wo=df_train_wo[use_col_wo]
 ######################################
 print('wo one hot')
