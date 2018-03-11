@@ -382,12 +382,6 @@ print('df_train_wo water down')
 
 # del t_df_train_wo_frac
 
-#Here we mimic the Kaggle kernels, and combine groups with unique appearances into categories
-
-
-
-
-
 df_train_wo=df_train_wo[use_col_wo]
 ######################################
 print('wo one hot')
