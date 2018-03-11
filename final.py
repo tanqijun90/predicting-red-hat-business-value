@@ -155,7 +155,8 @@ def congregate_small_category(data,col,max_num_corr):
     ind.index=hist.index
     ind.name=col+'_con'
     for i in range(1,max_num_corr+1):
-        ind[hist==i]=(len(hist))+i
+        ind[hist==i]=len(hist)+i
+    ind=ind.astype('int32')
     return data.merge(pd.DataFrame(ind),how='left',left_on=col,right_index=True)
 ######################################
 print('read in data')
@@ -182,7 +183,9 @@ act_train=initial_data_treat(act_train)
 act_test=initial_data_treat(act_test)
 peo_data=initial_data_treat(peo_data)
 act_total=act_train.append(act_test)
-m_total=act_total.merge(peo_data,how='left',left_on='people_id',right_on='people_id')
+#congregate by people
+peo_data=congregate_small_category(peo_data,'group_1',1)
+m_total=act_total.merge(peo_data,how='left',on='people_id')
 gp_intersect=np.intersect1d(m_total['group_1'].iloc[:len(act_train)].values,m_total['group_1'].iloc[len(act_train):].values)
 #############################################
 print('date-related feature engineering')
@@ -255,10 +258,10 @@ print('unmasking features')
 m_total=unmask_rt(m_total,'group_1_rt',['act_date_int_group_1_rt'])
 m_total=unmask_rt(m_total,'act_date_int_group_1_rt_boundary',['act_date_int_group_1_rt'])
 m_total=unmask_rt(m_total,'char_2_y_char_6_y_char_7_y_char_9_y_rt',['act_date_int_group_1_rt'])
-######################################
-print('group_1 congregate') 
-######################################
-m_total=congregate_small_category(m_total,'group_1',4)
+# ######################################
+# print('group_1 congregate') 
+# ######################################
+# m_total=congregate_small_category(m_total,'group_1',1)
 ######################################
 print('final data treatment')
 ######################################
@@ -277,15 +280,15 @@ print('columns for training/testing')
 available_col=['activity_category', 'activity_id', 'char_1_x', 'char_10_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x', 'outcome', 'people_id', 'char_1_y', 'group_1', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_10_y', 'char_11', 'char_12', 'char_13', 'char_14','char_15', 'char_16', 'char_17', 'char_18', 'char_19', 'char_20','char_21', 'char_22', 'char_23', 'char_24', 'char_25', 'char_26','char_27', 'char_28', 'char_29', 'char_30', 'char_31', 'char_32','char_33', 'char_34', 'char_35', 'char_36', 'char_37', 'char_38']
 categorical_col=['activity_category', 'char_1_x', 'char_10_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x', 'char_1_y', 'group_1', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y']
 use_col_gp=['activity_category', 'char_1_x', 'char_10_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x',  'group_1', 'char_2_y','char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_10_y', 'char_11', 'char_12', 'char_13', 'char_14','char_15', 'char_16', 'char_17', 'char_18', 'char_19', 'char_20','char_21', 'char_22', 'char_23', 'char_24', 'char_25', 'char_26','char_27', 'char_28', 'char_29', 'char_30', 'char_31', 'char_32','char_33', 'char_34', 'char_35', 'char_36', 'char_37', 'char_38']
-use_col_wo=['activity_category', 'char_1_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x','char_2_y', 'char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_10_y', 'char_11', 'char_12', 'char_13', 'char_14','char_15', 'char_16', 'char_17', 'char_18', 'char_19', 'char_20','char_21', 'char_22', 'char_23', 'char_24', 'char_25', 'char_26','char_27', 'char_28', 'char_29', 'char_30', 'char_31', 'char_32','char_33', 'char_34', 'char_35', 'char_36', 'char_37', 'char_38']#'char_10_x', 
+use_col_wo=['activity_category', 'char_1_x', 'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x', 'char_8_x','char_9_x', 'char_2_y', 'char_3_y', 'char_4_y', 'char_5_y', 'char_6_y', 'char_7_y', 'char_8_y','char_9_y', 'char_10_y', 'char_11', 'char_12', 'char_13', 'char_14','char_15', 'char_16', 'char_17', 'char_18', 'char_19', 'char_20','char_21', 'char_22', 'char_23', 'char_24', 'char_25', 'char_26','char_27', 'char_28', 'char_29', 'char_30', 'char_31', 'char_32','char_33', 'char_34', 'char_35', 'char_36', 'char_37', 'char_38']#'char_10_x', 
 
-available_col=available_col+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend','act_week_num', 'act_date_int', 'peo_date_int', 'group_act_size','char_6_y_prod_char_2_y', 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y', 'char_1_y_prod_char_8_y','char_2_y_char_6_y_char_7_y_char_9_y_rt', 'group_1_rt','act_date_int_group_1_rt', 'act_date_int_group_1_rt_boundary','group_1_rt_s', 'group_1_rt_us', 'act_date_int_group_1_rt_boundary_s','act_date_int_group_1_rt_boundary_us','char_2_y_char_6_y_char_7_y_char_9_y_rt_s','char_2_y_char_6_y_char_7_y_char_9_y_rt_us', 'fill05']
+available_col=available_col+['group_1_con', 'is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend','act_week_num', 'act_date_int', 'peo_date_int', 'group_act_size','char_6_y_prod_char_2_y', 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y', 'char_1_y_prod_char_8_y','char_2_y_char_6_y_char_7_y_char_9_y_rt', 'group_1_rt','act_date_int_group_1_rt', 'act_date_int_group_1_rt_boundary','group_1_rt_s', 'group_1_rt_us', 'act_date_int_group_1_rt_boundary_s','act_date_int_group_1_rt_boundary_us','char_2_y_char_6_y_char_7_y_char_9_y_rt_s','char_2_y_char_6_y_char_7_y_char_9_y_rt_us', 'fill05']
 
 categorical_col=categorical_col+['group_1_con','act_weekday','act_week_num', 'char_6_y_prod_char_2_y', 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y', 'char_1_y_prod_char_8_y']#'act_year', 'act_month', 'act_day',
 
 use_col_gp=use_col_gp+['is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','act_week_num', 'is_weekend','act_date_int', 'peo_date_int', 'group_act_size','char_6_y_prod_char_2_y','char_2_y_char_6_y_char_7_y_char_9_y_rt', 'group_1_rt','act_date_int_group_1_rt', 'act_date_int_group_1_rt_boundary','group_1_rt_s', 'group_1_rt_us', 'act_date_int_group_1_rt_boundary_s','act_date_int_group_1_rt_boundary_us','char_2_y_char_6_y_char_7_y_char_9_y_rt_s','char_2_y_char_6_y_char_7_y_char_9_y_rt_us']
 
-use_col_wo=use_col_wo+['group_1_con','is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend', 'act_date_int', 'peo_date_int']#, 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y']#, 'char_1_y_prod_char_8_y']#'act_week_num',
+use_col_wo=use_col_wo+['group_1_con', 'is_last_act', 'act_year', 'act_month', 'act_day', 'act_weekday','is_weekend', 'act_date_int', 'peo_date_int', 'char_5_y_prod_char_6_y','char_7_y_prod_char_9_y']#, 'char_1_y_prod_char_8_y']#'act_week_num',
 ######################################
 print('df_train_gp water down')
 ######################################
@@ -338,8 +341,8 @@ df_not_categorical_col_gp=list(set(use_col_gp)-set(categorical_col))
 enc_gp=OneHotEncoder(handle_unknown='ignore')
 enc_gp=enc_gp.fit(pd.concat([df_train_gp[df_categorical_col_gp],data_test[df_categorical_col_gp]]))
 t_df_cat_train_gp=enc_gp.transform(df_train_gp[df_categorical_col_gp])
-t_df_spr_train_gp=hstack((df_train_gp[df_not_categorical_col_gp],df_cat_train_gp))
-dtrain_gp=xgb.DMatrix(df_spr_train_gp,label=train_outcome_gp)
+t_df_spr_train_gp=hstack((df_train_gp[df_not_categorical_col_gp],t_df_cat_train_gp))
+dtrain_gp=xgb.DMatrix(t_df_spr_train_gp,label=train_outcome_gp)
 del t_df_cat_train_gp
 del t_df_spr_train_gp
 ######################################
@@ -352,8 +355,8 @@ if not kaggle_output:
 df_test_gp=secondary_feature(df_test_gp,'char_2_y_char_6_y_char_7_y_char_9_y_rt','fill05')
 df_test_gp=df_test_gp[use_col_gp]
 t_df_cat_test_gp=enc_gp.transform(df_test_gp[df_categorical_col_gp])
-t_df_spr_test_gp=hstack((df_test_gp[df_not_categorical_col_gp],df_cat_test_gp))
-dtest_gp=xgb.DMatrix(df_spr_test_gp)
+t_df_spr_test_gp=hstack((df_test_gp[df_not_categorical_col_gp],t_df_cat_test_gp))
+dtest_gp=xgb.DMatrix(t_df_spr_test_gp)
 del t_df_cat_test_gp
 del t_df_spr_test_gp
 ######################################
@@ -395,8 +398,8 @@ df_not_categorical_col_wo=list(set(use_col_wo)-set(categorical_col))
 enc_wo=OneHotEncoder(handle_unknown='ignore')
 enc_wo=enc_wo.fit(pd.concat([df_train_wo[df_categorical_col_wo],data_test[df_categorical_col_wo]]))
 t_df_cat_train_wo=enc_wo.transform(df_train_wo[df_categorical_col_wo])
-t_df_spr_train_wo=hstack((df_train_wo[df_not_categorical_col_wo],df_cat_train_wo))
-dtrain_wo=xgb.DMatrix(df_spr_train_wo,label=train_outcome_wo)
+t_df_spr_train_wo=hstack((df_train_wo[df_not_categorical_col_wo],t_df_cat_train_wo))
+dtrain_wo=xgb.DMatrix(t_df_spr_train_wo,label=train_outcome_wo)
 del t_df_cat_train_wo
 del t_df_spr_train_wo
 ######################################
@@ -408,8 +411,8 @@ if not kaggle_output:
     test_outcome_wo=df_test_wo['outcome_y']
 df_test_wo=df_test_wo[use_col_wo]
 t_df_cat_test_wo=enc_wo.transform(df_test_wo[df_categorical_col_wo])
-t_df_spr_test_wo=hstack((df_test_wo[df_not_categorical_col_wo],df_cat_test_wo))
-dtest_wo=xgb.DMatrix(df_spr_test_wo)
+t_df_spr_test_wo=hstack((df_test_wo[df_not_categorical_col_wo],t_df_cat_test_wo))
+dtest_wo=xgb.DMatrix(t_df_spr_test_wo)
 del t_df_cat_test_wo
 del t_df_spr_test_wo
 ######################################
