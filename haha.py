@@ -1,1 +1,1 @@
-print('haha2')
+print('haha')
