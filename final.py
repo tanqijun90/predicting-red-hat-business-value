@@ -17,7 +17,7 @@ tree_build_subsample=1
 col_sample_tree=1
 small_group_act_size=10000000
 ######################################
-print('functions')
+print('Functions')
 ######################################
 def prediction_mod_funct(prediction,center,confidence_wo):
     '''Chcange the prediction of activities whose group is not in the training
@@ -186,7 +186,7 @@ def secondary_feature(data,col_p,col_s,fillna_num=60000):
     data[col_p]=col_prim
     return data
 
-def initial_data_treat(data):
+def initial_data_proc(data):
     data.replace(to_replace='.* ',regex=True,value='',inplace=True)
     for col in data.columns:
         if ((data[col].dtype=='O') and (col!='people_id')
@@ -197,7 +197,7 @@ def initial_data_treat(data):
             data[col]=data[col].astype('int8')
     return data
 
-def final_data_treat(data,fillna_num=60000):
+def final_data_proc(data,fillna_num=60000):
     for col in data.columns:
         if (data[col].dtype=='bool'):
             data[col]=data[col].astype('int8')
@@ -230,14 +230,15 @@ def congregate_small_category(data,col,max_num_corr):
         ind[hist==i]=len(hist)+i
     ind=ind.astype('int32')
     return data.merge(pd.DataFrame(ind),how='left',left_on=col,right_index=True)
+
 ######################################
-print('read in data')
+print('Read in Data')
 ######################################
 act_train=pd.read_csv('../act_train.csv',parse_dates=['date'])
 act_test=pd.read_csv('../act_test.csv',parse_dates=['date'])
 peo_data=pd.read_csv('../people.csv',parse_dates=['date'])
 ######################################
-print('train test split')
+print('Train Test Split')
 ######################################
 # An efficient approach to train and test is to separate a small group of
 # peoples as test. Among the remaining people, we can mix their
@@ -252,11 +253,11 @@ if not kaggle_output:
     test_outcome=act_test[['activity_id','outcome']]
     del act_test['outcome']
 ######################################
-print('initial data treatment')
+print('Initial Data Processing')
 ######################################
-act_train=initial_data_treat(act_train)
-act_test=initial_data_treat(act_test)
-peo_data=initial_data_treat(peo_data)
+act_train=initial_data_proc(act_train)
+act_test=initial_data_proc(act_test)
+peo_data=initial_data_proc(peo_data)
 act_total=act_train.append(act_test)
 #congregate by people
 peo_data=congregate_small_category(peo_data,'group_1',1)
@@ -265,7 +266,7 @@ gp_intersect=np.intersect1d(
     m_total['group_1'].iloc[
         :len(act_train)].values,m_total['group_1'].iloc[len(act_train):].values)
 #############################################
-print('date-related feature engineering')
+print('Date-Related Feature Engineering')
 #############################################
 peo=m_total.groupby('people_id')
 peo_last_act=peo['date_x'].max()
@@ -288,7 +289,7 @@ del m_total['peo_last_act']
 del m_total['date_x']
 del m_total['date_y']
 #############################################
-print('digression to group_act_size')
+print('Digression to group_act_size')
 #############################################
 gpb=m_total.groupby('group_1')
 t_group_act_size=gpb['activity_id'].count()
@@ -298,7 +299,7 @@ m_total=m_total.merge(
     left_on='group_1',right_index=True)
 del t_group_act_size
 #############################################
-print('product and success rate feature engineering')
+print('Product and Success Rate Feature Engineering')
 #############################################
 #We also need to pay attension to the various success rate for t_test, since
 #some of them should not be available.
@@ -324,7 +325,7 @@ m_total=success_rate(m_total,['group_1'],m_train)
 
 del m_train
 #############################################
-print('group date interpolation')
+print('Group Date Interpolation')
 #############################################
 m_train=m_total.iloc[:len(act_train)]
 m_test=m_total.iloc[len(act_train):]
@@ -346,7 +347,7 @@ m_total['act_date_int_group_1_rt_boundary']=pd.concat(
 del m_train
 del m_test
 ######################################
-print('unmasking features')
+print('Unmasking Features')
 ######################################
 m_total=unmask_rt(m_total,'group_1_rt',['act_date_int_group_1_rt'])
 m_total=unmask_rt(m_total,'act_date_int_group_1_rt_boundary',
@@ -358,10 +359,10 @@ m_total=unmask_rt(m_total,'char_2_y_char_6_y_char_7_y_char_9_y_rt',
 # ######################################
 # m_total=congregate_small_category(m_total,'group_1',1)
 ######################################
-print('final data treatment')
+print('Final Data Processing')
 ######################################
 m_total['fill05']=0.5
-m_total=final_data_treat(m_total)
+m_total=final_data_proc(m_total)
 data_train=m_total.iloc[:len(act_train)]
 data_test=m_total.iloc[len(act_train):]
 df_train_gp=data_train[data_train['group_1'].isin(gp_intersect)].copy()
@@ -371,7 +372,7 @@ df_train_wo=data_train.copy()
 #    =data_train[data_train['group_act_size']<=small_group_act_size].copy()
 train_outcome_wo=df_train_wo['outcome']
 ######################################
-print('columns for training/testing')
+print('Columns for Training/Testing')
 ######################################
 available_col=['activity_category', 'activity_id', 'char_1_x', 'char_10_x',
     'char_2_x','char_3_x', 'char_4_x', 'char_5_x', 'char_6_x', 'char_7_x',
@@ -447,7 +448,7 @@ use_col_wo=use_col_wo+['group_1_con', 'is_last_act', 'act_year', 'act_month',
 #'char_5_y_prod_char_6_y']#,'char_7_y_prod_char_9_y']#,
 #'char_1_y_prod_char_8_y']#'act_week_num',
 ######################################
-print('df_train_gp water down')
+print('df_train_gp Water Down')
 ######################################
 #We want to water down the accuracy of features so that they are more similar to
 #what would be available for testing data.
@@ -514,7 +515,7 @@ del t_act_date_int_group_1_rt
 
 df_train_gp=df_train_gp[use_col_gp]
 ######################################
-print('gp one hot')
+print('Group One Hot')
 ######################################
 from sklearn.preprocessing import OneHotEncoder
 from scipy.sparse import hstack
@@ -530,7 +531,7 @@ dtrain_gp=xgb.DMatrix(t_df_spr_train_gp,label=train_outcome_gp)
 del t_df_cat_train_gp
 del t_df_spr_train_gp
 ######################################
-print('prepare test_gp')
+print('Prepare test_gp')
 ######################################
 df_test_gp=data_test[data_test['group_1'].isin(gp_intersect)]
 if not kaggle_output:
@@ -547,7 +548,7 @@ dtest_gp=xgb.DMatrix(t_df_spr_test_gp)
 del t_df_cat_test_gp
 del t_df_spr_test_gp
 ######################################
-print('run test_gp')
+print('Run test_gp')
 ######################################
 watchlist  = [(dtrain_gp,'train')]
 param = {'max_depth':10, 'eta':eta_gp, 'silent':1,
@@ -557,7 +558,7 @@ param = {'max_depth':10, 'eta':eta_gp, 'silent':1,
 bst_gp = xgb.train(param, dtrain_gp, num_round_gp,
                    watchlist,early_stopping_rounds=early_stopping_rounds)
 ######################################
-print('df_train_wo water down')
+print('df_train_wo Water Down')
 ######################################
 # df_train_wo.rename(columns={'char_6_y_char_38_rt' :
 # 'char_6_y_char_38_rt_optimistic'}, inplace=True)
@@ -589,7 +590,7 @@ print('df_train_wo water down')
 
 df_train_wo=df_train_wo[use_col_wo]
 ######################################
-print('wo one hot')
+print('wo One Hot')
 ######################################
 df_categorical_col_wo=list(set(use_col_wo)&set(categorical_col))
 df_not_categorical_col_wo=list(set(use_col_wo)-set(categorical_col))
@@ -603,7 +604,7 @@ dtrain_wo=xgb.DMatrix(t_df_spr_train_wo,label=train_outcome_wo)
 del t_df_cat_train_wo
 del t_df_spr_train_wo
 ######################################
-print('prepare test_wo')
+print('Prepare test_wo')
 ######################################
 df_test_wo=data_test[~data_test['group_1'].isin(gp_intersect)]
 if not kaggle_output:
@@ -618,7 +619,7 @@ dtest_wo=xgb.DMatrix(t_df_spr_test_wo)
 del t_df_cat_test_wo
 del t_df_spr_test_wo
 ######################################
-print('run test_wo')
+print('Run test_wo')
 ######################################
 watchlist  = [(dtrain_wo,'train')]
 param = {'max_depth':10, 'eta':eta_wo, 'silent':1,
@@ -628,7 +629,7 @@ param = {'max_depth':10, 'eta':eta_wo, 'silent':1,
 bst_wo = xgb.train(param, dtrain_wo, num_round_wo,
                    watchlist,early_stopping_rounds=early_stopping_rounds)
 ######################################
-print('output')
+print('Output')
 ######################################
 from sklearn.metrics import roc_auc_score
 if not kaggle_output:
